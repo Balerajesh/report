@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bug Reporting Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700">
+  <style>
+    body { font-family: 'Times New Roman', Times, serif; background: #f7f7f7; padding: 30px; }
+    .container { max-width: 800px; margin: auto; background: #fff; box-shadow: 0 2px 8px #ccc; padding: 24px 36px 36px 36px; border-radius: 8px; }
+    .form label { display: block; margin-top: 18px; margin-bottom: 2px; font-size: 14pt; font-weight: bold; }
+    .form textarea, .form input[type='text'] { width: 100%; font-family: 'Times New Roman', Times, serif; font-size: 12pt; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 2px; background: #fdfdfd; resize: vertical; }
+    .form input[type="file"] { font-size: 12pt; padding: 3px 0; }
+    .form .add-step-btn { font-size: 12pt; margin-top: 6px; background: #3959bd; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; }
+    .form .remove-step-btn { margin-left: 10px; font-size: 14pt; color: #888; background: none; border: none; cursor: pointer; vertical-align:middle; }
+    .form .remove-img-btn { margin-left: 8px; font-size: 14pt; color: #ca2323; background: #f2f2f2; border: none; border-radius: 2px; cursor: pointer; vertical-align:top; padding: 0 5px; }
+    .form .save-btn { font-size: 14pt; background: #198754; color: #fff; border: none; border-radius: 4px; padding: 10px 28px; cursor: pointer; margin-top: 24px; margin-bottom: 6px; float:right;}
+    .preview { border-top: 2px solid #e0e0e0; padding-top: 32px; margin-top: 38px; }
+    .preview-title { text-align: center; font-size: 20pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 24px; }
+    .heading { font-size: 14pt; font-weight: bold; margin-top: 18px; }
+    .content { font-size: 12pt; margin-bottom: 12px; white-space: pre-line; }
+    ul.step-list { list-style: disc inside; padding-left: 18px; margin: 0; }
+    .step-block { margin-bottom: 14px; }
+    .steps-img { max-width: 300px; display: inline-block; margin: 7px 0 7px 0; border: 1px solid #a0a0a0; border-radius: 3px; vertical-align:middle;}
+    .fade { color: #aaa; font-style: italic; font-size: 11pt; }
+    .clearfix::after {content: ""; clear: both; display: table;}
+    .file-label { font-size: 13pt; font-weight: bold; margin-right: 14px;}
+    .file-name-inpt { font-size: 13pt; font-family:'Times New Roman',Times,serif;width:250px;border:1px solid #aaa; border-radius: 4px; padding: 4px 10px; margin-right:10px;}
+    a { color: #274ec7; text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 style="text-align:center;font-size:22px;font-family:'Times New Roman',Times,serif; font-weight:bold;margin-bottom:14px;">
+    Bug Reporting Tool
+  </h2>
+  <form class="form" autocomplete="off" onsubmit="return false;">
+    <label>Title</label>
+    <input type="text" id="title" maxlength="100" placeholder="Enter bug title...">
+
+    <label>Summary:</label>
+    <textarea id="desc" rows="3" placeholder="Paste summary..."></textarea>
+
+    <label>Link:</label>
+    <input type="text" id="link" maxlength="300" placeholder="Paste or enter relevant link...">
+
+    <label>Steps to Reproduce:</label>
+    <div id="steps-section"></div>
+    <button type="button" class="add-step-btn" onclick="addStep()">Add New Step</button>
+    
+    <label>Impact:</label>
+    <textarea id="impact" rows="2" placeholder="Paste or type impact summary..."></textarea>
+
+    <label>References: (optional)</label>
+    <textarea id="references" rows="1" placeholder="Any references, files, links..."></textarea>
+
+    <label>Remediation: (optional)</label>
+    <textarea id="remediation" rows="2" placeholder="How to fix / recommended remediation..."></textarea>
+
+    <div style="margin-top:22px; margin-bottom:12px;">
+      <span class="file-label">File name for PDF:</span>
+      <input type="text" id="pdfFileName" class="file-name-inpt" placeholder="bug_report"/>
+      <button type="button" class="save-btn" onclick="onSave()">Download PDF</button>
+    </div>
+  </form>
+  <div class="preview" id="preview"></div>
+</div>
+<script>
+  const title = document.getElementById('title');
+  const desc = document.getElementById('desc');
+  const link = document.getElementById('link');
+  const impact = document.getElementById('impact');
+  const references = document.getElementById('references');
+  const remediation = document.getElementById('remediation');
+  const pdfFileName = document.getElementById('pdfFileName');
+  const preview = document.getElementById('preview');
+  const stepsSection = document.getElementById('steps-section');
+  let stepsData = [];
+  let imgLoadPromises = {};
+
+  function addStep(text = '', img = '') {
+    stepsData.push({ text, img });
+    renderStepsInputs();
+    updatePreview();
+  }
+  function removeStep(idx) {
+    stepsData.splice(idx, 1);
+    renderStepsInputs();
+    updatePreview();
+  }
+  function updateStepText(idx, value) {
+    stepsData[idx].text = value;
+    updatePreview();
+  }
+  function removeStepImage(idx) {
+    stepsData[idx].img = '';
+    renderStepsInputs();
+    updatePreview();
+  }
+  function handleStepImg(idx, file) {
+    if(!file) return;
+    const reader = new FileReader();
+    imgLoadPromises[idx] = new Promise(res => {
+      reader.onload = evt => {
+        stepsData[idx].img = evt.target.result;
+        renderStepsInputs();
+        updatePreview();
+        res(evt.target.result);
+      };
+    });
+    reader.readAsDataURL(file);
+  }
+  function renderStepsInputs() {
+    stepsSection.innerHTML = stepsData.map((step, idx) => `
+      <div style="margin-bottom:10px;display:flex;align-items:flex-start;">
+        <span style="margin-top:6px; margin-right:8px;">•</span>
+        <div style="flex:1;">
+          <input type="text" value="${escapeHtml(step.text)}" placeholder="Description of step..." style="width:75%;display:inline-block;"
+            oninput="updateStepText(${idx}, this.value)">
+          <input type="file" accept="image/*" style="display:inline-block;width:24%;" onchange="handleStepImg(${idx}, this.files[0])">
+          ${
+            step.img
+            ? `<br>
+                <span style="display:inline-block;position:relative;">
+                  <img src="${step.img}" class="steps-img">
+                  <button type="button" class="remove-img-btn" title="Remove image" onclick="removeStepImage(${idx})">✕</button>
+                </span>`
+            : ''
+          }
+        </div>
+        <button type="button" class="remove-step-btn" title="Delete step" onclick="removeStep(${idx})">✕</button>
+      </div>
+    `).join('');
+  }
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+  function linkify(text) {
+    text = escapeHtml(text);
+    return text.replace(/https:\/\/[^\s]+/g, url =>
+      `<a href="${url}" target="_blank">${url}</a>`
+    );
+  }
+  window.updateStepText = updateStepText;
+  window.handleStepImg = handleStepImg;
+  window.removeStep = removeStep;
+  window.removeStepImage = removeStepImage;
+
+  function updatePreview() {
+    preview.innerHTML = `
+      <div class="preview-title">
+        ${title.value ? escapeHtml(title.value) : '<span class="fade">(Bug Title Here)</span>'}
+      </div>
+      <div class="heading">Summary:</div>
+      <div class="content">${desc.value ? linkify(desc.value) : '<span class="fade">(Summary...)</span>'}</div>
+      <div class="heading">Link:</div>
+      <div class="content">${link.value ? linkify(link.value) : '<span class="fade">(Paste or enter related link)</span>'}</div>
+      <div class="heading">Steps to Reproduce:</div>
+      <div class="content">
+        ${
+          stepsData.length > 0
+          ? (
+              `<ul class="step-list">` +
+              stepsData.map(step =>
+                step.text
+                ? `<li class="step-block">${linkify(step.text)}${
+                      step.img ? `<br><img class="steps-img" src="${step.img}" alt="Step image">` : ""
+                    }</li>`
+                : ''
+              ).join('')
+              + `</ul>`
+            )
+          : `<span class="fade">(Step-by-step bullets, with each image shown below bullet if added)</span>`
+        }
+      </div>
+      <div class="heading">Impact:</div>
+      <div class="content">${impact.value ? linkify(impact.value) : '<span class="fade">(Explain possible consequences or risks)</span>'}</div>
+      ${references.value
+        ? `<div class="heading">References:</div>
+           <div class="content">${linkify(references.value)}</div>` : ''
+      }
+      ${remediation.value
+        ? `<div class="heading">Remediation:</div>
+           <div class="content">${linkify(remediation.value)}</div>` : ''
+      }
+    `;
+  }
+  [title, desc, link, impact, references, remediation].forEach(el => {
+    el.addEventListener('input', updatePreview);
+  });
+  addStep();
+  window.addStep = addStep;
+
+  async function waitForImages() {
+    let promises = Object.values(imgLoadPromises || {});
+    if (promises.length > 0) {
+      await Promise.allSettled(promises);
+    }
+  }
+
+  async function loadImagePDF(dataurl) {
+    return new Promise(res=>{
+      let img = new window.Image();
+      img.onload = () => {
+        const MAX_W = 800, MAX_H = 800;
+        let [w, h] = [img.width, img.height];
+        if (w > MAX_W) { h = h * (MAX_W/w); w = MAX_W; }
+        if (h > MAX_H) { w = w * (MAX_H/h); h = MAX_H; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const jpegData = canvas.toDataURL("image/jpeg", 0.92);
+        res({data: jpegData, w:w, h:h, type: "JPEG"});
+      };
+      img.src = dataurl;
+    });
+  }
+
+  async function saveAsPDF() {
+    await waitForImages();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:"pt", format:"a4"});
+    const left = 54, right = 540, maxWidth = right-left;
+    let yy = 54;
+    doc.setFont("Times", "bold"); doc.setFontSize(20);
+    doc.text((title.value || "Bug Title"), 297.5, yy, {align:"center"});
+    yy += 38;
+    drawSection("Summary:", desc.value, 14, 12, true);
+    drawSection("Link:", link.value, 14, 12, true);
+    doc.setFontSize(14); doc.setFont("Times", "bold");
+    doc.text("Steps to Reproduce:", left, yy); yy += 18;
+    doc.setFont("Times", "normal"); doc.setFontSize(12);
+    for(let step of stepsData) {
+      if(step.text) {
+        doc.circle(left-7, yy+3, 2, "F");
+        let lines = doc.splitTextToSize(step.text, maxWidth-18);
+        doc.text(lines, left, yy+8);
+        yy += 18 * lines.length;
+        if(step.img) {
+          let img = await loadImagePDF(step.img);
+          let imgW = Math.min(300, img.w), imgH = imgW * (img.h/img.w);
+          if(yy+imgH+8>800) { doc.addPage(); yy = 54; }
+          doc.addImage(img.data, "JPEG", left, yy, imgW, imgH);
+          yy += imgH + 8;
+        }
+        yy += 8;
+      }
+    }
+    drawSection("Impact:", impact.value, 14, 12, true);
+    if(references.value) drawSection("References:", references.value, 14, 12, true);
+    if(remediation.value) drawSection("Remediation:", remediation.value, 14, 12, true);
+    let fname = (pdfFileName.value || title.value.replace(/\s+/g,'_') || 'bug_report').replace(/[^\w\d_-]+/g, "_");
+    doc.save(fname + ".pdf");
+
+    function drawSection(hd, val, hdsize, valsize, doLink) {
+      if(yy > 770) { doc.addPage(); yy = 54; }
+      doc.setFontSize(hdsize); doc.setFont("Times", "bold");
+      doc.text(hd, left, yy); yy += 18;
+      doc.setFontSize(valsize); doc.setFont("Times", "normal");
+      if(val) {
+        let plain = val;
+        let match;
+        let links = [];
+        const urlRegex = /https:\/\/[^\s]+/g;
+        let lastIdx = 0;
+        while((match = urlRegex.exec(plain))) {
+          links.push({idx:match.index, url:match[0]});
+        }
+        if (links.length === 0 || !doLink) {
+          let lines = doc.splitTextToSize(val, maxWidth);
+          doc.text(lines, left, yy); yy += 18 * lines.length;
+        } else {
+          let yStart = yy;
+          let content = "";
+          let ci = 0;
+          for(let i=0; i<val.length; ) {
+            if (links[ci] && i===links[ci].idx) {
+              if (content) {
+                let lines = doc.splitTextToSize(content, maxWidth);
+                doc.text(lines, left, yy);
+                yy += 18 * lines.length;
+                content = "";
+              }
+              let url = links[ci].url;
+              doc.setTextColor(39, 78, 199);
+              doc.textWithLink(url, left, yy, {url});
+              doc.setTextColor(0,0,0);
+              yy += 18;
+              ci++;
+              i += url.length;
+            } else {
+              content += val[i++];
+            }
+          }
+          if (content) {
+            let lines = doc.splitTextToSize(content, maxWidth);
+            doc.text(lines, left, yy);
+            yy += 18 * lines.length;
+          }
+        }
+      }
+      yy += 8;
+    }
+  }
+
+  function onSave() {
+    saveAsPDF();
+  }
+</script>
+</body>
+</html>
