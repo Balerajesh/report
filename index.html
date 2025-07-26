@@ -12,7 +12,8 @@
     .form textarea, .form input[type='text'] { width: 100%; font-family: 'Times New Roman', Times, serif; font-size: 12pt; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 2px; background: #fdfdfd; resize: vertical; }
     .form input[type="file"] { font-size: 12pt; padding: 3px 0; }
     .form .add-step-btn { font-size: 12pt; margin-top: 6px; background: #3959bd; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; }
-    .form .remove-step-btn { margin-left: 10px; font-size: 10pt; color: #bbb; background: none; border: none; cursor: pointer; }
+    .form .remove-step-btn { margin-left: 10px; font-size: 14pt; color: #888; background: none; border: none; cursor: pointer; vertical-align:middle; }
+    .form .remove-img-btn { margin-left: 8px; font-size: 14pt; color: #ca2323; background: #f2f2f2; border: none; border-radius: 2px; cursor: pointer; vertical-align:top; padding: 0 5px; }
     .form .save-btn { font-size: 14pt; background: #198754; color: #fff; border: none; border-radius: 4px; padding: 10px 28px; cursor: pointer; margin-top: 24px; margin-bottom: 6px; float:right;}
     .preview { border-top: 2px solid #e0e0e0; padding-top: 32px; margin-top: 38px; }
     .preview-title { text-align: center; font-size: 20pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 24px; }
@@ -20,21 +21,12 @@
     .content { font-size: 12pt; margin-bottom: 12px; white-space: pre-line; }
     ul.step-list { list-style: disc inside; padding-left: 18px; margin: 0; }
     .step-block { margin-bottom: 14px; }
-    .steps-img { max-width: 300px; display: block; margin: 7px 0 7px 0; border: 1px solid #a0a0a0; border-radius: 3px; }
+    .steps-img { max-width: 300px; display: inline-block; margin: 7px 0 7px 0; border: 1px solid #a0a0a0; border-radius: 3px; vertical-align:middle;}
     .fade { color: #aaa; font-style: italic; font-size: 11pt; }
     .clearfix::after {content: ""; clear: both; display: table;}
-    /* Modal styles */
-    .modal-bg {
-      display: none; position: fixed; left:0;top:0;width:100vw;height:100vh;z-index:99;background:rgba(0,0,0,0.25);
-      align-items: center; justify-content: center;
-    }
-    .modal {
-      background: #fff; border-radius: 10px; padding: 28px 36px 24px 36px; box-shadow: 0 4px 16px #888; min-width: 280px;
-      font-family: 'Times New Roman', Times, serif; font-size: 16pt; text-align:center;
-    }
-    .modal button { font-size: 15pt; margin: 18px 18px 0 18px; border-radius: 6px; border: none; background: #3959bd; color: #fff; padding: 7px 22px; cursor: pointer;}
-    .modal button.cancel {background:#a2a2a2;}
-    .modal span {display:block; margin-bottom: 16px; font-size: 18pt;}
+    .file-label { font-size: 13pt; font-weight: bold; margin-right: 14px;}
+    .file-name-inpt { font-size: 13pt; font-family:'Times New Roman',Times,serif;width:250px;border:1px solid #aaa; border-radius: 4px; padding: 4px 10px; margin-right:10px;}
+    a { color: #274ec7; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -46,46 +38,45 @@
     <label>Title</label>
     <input type="text" id="title" maxlength="100" placeholder="Enter bug title...">
 
-    <label>Summary/Description</label>
-    <textarea id="desc" rows="3" placeholder="Paste summary description..."></textarea>
+    <label>Summary:</label>
+    <textarea id="desc" rows="3" placeholder="Paste summary..."></textarea>
 
-    <label>Link</label>
+    <label>Link:</label>
     <input type="text" id="link" maxlength="300" placeholder="Paste or enter relevant link...">
 
-    <label>Steps to Reproduce/Exploit</label>
+    <label>Steps to Reproduce:</label>
     <div id="steps-section"></div>
     <button type="button" class="add-step-btn" onclick="addStep()">Add New Step</button>
     
-    <label>Impact</label>
+    <label>Impact:</label>
     <textarea id="impact" rows="2" placeholder="Paste or type impact summary..."></textarea>
 
-    <label>Resources (optional)</label>
-    <textarea id="resources" rows="1" placeholder="Any references, files, links..."></textarea>
-    <div class="clearfix"></div>
-    <button type="button" class="save-btn" onclick="onSave()">Save</button>
-  </form>
+    <label>References: (optional)</label>
+    <textarea id="references" rows="1" placeholder="Any references, files, links..."></textarea>
 
+    <label>Remediation: (optional)</label>
+    <textarea id="remediation" rows="2" placeholder="How to fix / recommended remediation..."></textarea>
+
+    <div style="margin-top:22px; margin-bottom:12px;">
+      <span class="file-label">File name for PDF:</span>
+      <input type="text" id="pdfFileName" class="file-name-inpt" placeholder="bug_report"/>
+      <button type="button" class="save-btn" onclick="onSave()">Download PDF</button>
+    </div>
+  </form>
   <div class="preview" id="preview"></div>
 </div>
-<!-- Modal menu for format choice -->
-<div class="modal-bg" id="modal-bg">
-  <div class="modal">
-    <span>Download report as...</span>
-    <button onclick="modalChoice('pdf')">PDF</button>
-    <button onclick="modalChoice('doc')">DOC</button>
-    <button class="cancel" onclick="modalChoice('cancel')">Cancel</button>
-  </div>
-</div>
 <script>
-  // Bug report field references
   const title = document.getElementById('title');
   const desc = document.getElementById('desc');
   const link = document.getElementById('link');
   const impact = document.getElementById('impact');
-  const resources = document.getElementById('resources');
+  const references = document.getElementById('references');
+  const remediation = document.getElementById('remediation');
+  const pdfFileName = document.getElementById('pdfFileName');
   const preview = document.getElementById('preview');
   const stepsSection = document.getElementById('steps-section');
   let stepsData = [];
+  let imgLoadPromises = {};
 
   function addStep(text = '', img = '') {
     stepsData.push({ text, img });
@@ -101,14 +92,22 @@
     stepsData[idx].text = value;
     updatePreview();
   }
+  function removeStepImage(idx) {
+    stepsData[idx].img = '';
+    renderStepsInputs();
+    updatePreview();
+  }
   function handleStepImg(idx, file) {
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = evt => {
-      stepsData[idx].img = evt.target.result;
-      renderStepsInputs();
-      updatePreview();
-    };
+    imgLoadPromises[idx] = new Promise(res => {
+      reader.onload = evt => {
+        stepsData[idx].img = evt.target.result;
+        renderStepsInputs();
+        updatePreview();
+        res(evt.target.result);
+      };
+    });
     reader.readAsDataURL(file);
   }
   function renderStepsInputs() {
@@ -116,10 +115,18 @@
       <div style="margin-bottom:10px;display:flex;align-items:flex-start;">
         <span style="margin-top:6px; margin-right:8px;">•</span>
         <div style="flex:1;">
-          <input type="text" value="${escapeHtml(step.text)}" placeholder="Description of step..." style="width:75%;display:inline-block;" 
+          <input type="text" value="${escapeHtml(step.text)}" placeholder="Description of step..." style="width:75%;display:inline-block;"
             oninput="updateStepText(${idx}, this.value)">
           <input type="file" accept="image/*" style="display:inline-block;width:24%;" onchange="handleStepImg(${idx}, this.files[0])">
-          ${step.img ? `<br><img src="${step.img}" class="steps-img">` : ''}
+          ${
+            step.img
+            ? `<br>
+                <span style="display:inline-block;position:relative;">
+                  <img src="${step.img}" class="steps-img">
+                  <button type="button" class="remove-img-btn" title="Remove image" onclick="removeStepImage(${idx})">✕</button>
+                </span>`
+            : ''
+          }
         </div>
         <button type="button" class="remove-step-btn" title="Delete step" onclick="removeStep(${idx})">✕</button>
       </div>
@@ -130,32 +137,35 @@
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     })[m]);
   }
-  function formatLink(text) {
+  function linkify(text) {
     text = escapeHtml(text);
-    return text.replace(/https?:\/\/[^\s]+/g, url => `<a href="${url}" target="_blank">${url}</a>`);
+    return text.replace(/https:\/\/[^\s]+/g, url =>
+      `<a href="${url}" target="_blank">${url}</a>`
+    );
   }
   window.updateStepText = updateStepText;
   window.handleStepImg = handleStepImg;
   window.removeStep = removeStep;
+  window.removeStepImage = removeStepImage;
 
   function updatePreview() {
     preview.innerHTML = `
       <div class="preview-title">
         ${title.value ? escapeHtml(title.value) : '<span class="fade">(Bug Title Here)</span>'}
       </div>
-      <div class="heading">Summary/Description</div>
-      <div class="content">${desc.value ? escapeHtml(desc.value) : '<span class="fade">(Summary or description...)</span>'}</div>
-      <div class="heading">Link</div>
-      <div class="content">${link.value ? formatLink(link.value) : '<span class="fade">(Paste or enter related link)</span>'}</div>
-      <div class="heading">Steps to Reproduce/Exploit</div>
+      <div class="heading">Summary:</div>
+      <div class="content">${desc.value ? linkify(desc.value) : '<span class="fade">(Summary...)</span>'}</div>
+      <div class="heading">Link:</div>
+      <div class="content">${link.value ? linkify(link.value) : '<span class="fade">(Paste or enter related link)</span>'}</div>
+      <div class="heading">Steps to Reproduce:</div>
       <div class="content">
         ${
           stepsData.length > 0
           ? (
               `<ul class="step-list">` +
-              stepsData.map(step => 
+              stepsData.map(step =>
                 step.text
-                ? `<li class="step-block">${escapeHtml(step.text)}${
+                ? `<li class="step-block">${linkify(step.text)}${
                       step.img ? `<br><img class="steps-img" src="${step.img}" alt="Step image">` : ""
                     }</li>`
                 : ''
@@ -165,50 +175,65 @@
           : `<span class="fade">(Step-by-step bullets, with each image shown below bullet if added)</span>`
         }
       </div>
-      <div class="heading">Impact</div>
-      <div class="content">${impact.value ? escapeHtml(impact.value) : '<span class="fade">(Explain possible consequences or risks)</span>'}</div>
-      ${resources.value
-        ? `<div class="heading">Resources</div>
-           <div class="content">${escapeHtml(resources.value)}</div>`
-        : ''
+      <div class="heading">Impact:</div>
+      <div class="content">${impact.value ? linkify(impact.value) : '<span class="fade">(Explain possible consequences or risks)</span>'}</div>
+      ${references.value
+        ? `<div class="heading">References:</div>
+           <div class="content">${linkify(references.value)}</div>` : ''
+      }
+      ${remediation.value
+        ? `<div class="heading">Remediation:</div>
+           <div class="content">${linkify(remediation.value)}</div>` : ''
       }
     `;
   }
-  [title, desc, link, impact, resources].forEach(el => {
+  [title, desc, link, impact, references, remediation].forEach(el => {
     el.addEventListener('input', updatePreview);
   });
   addStep();
   window.addStep = addStep;
 
-  // --- Export/Save Modal Logic ---
-  function onSave() {
-    document.getElementById('modal-bg').style.display = 'flex';
-  }
-  window.modalChoice = async function(type){
-    document.getElementById('modal-bg').style.display = 'none';
-    if(type === 'pdf') await saveAsPDF();
-    if(type === 'doc') saveAsDocument();
+  async function waitForImages() {
+    let promises = Object.values(imgLoadPromises || {});
+    if (promises.length > 0) {
+      await Promise.allSettled(promises);
+    }
   }
 
-  // PDF export with jsPDF (supports images, styled fonts)
+  async function loadImagePDF(dataurl) {
+    return new Promise(res=>{
+      let img = new window.Image();
+      img.onload = () => {
+        const MAX_W = 800, MAX_H = 800;
+        let [w, h] = [img.width, img.height];
+        if (w > MAX_W) { h = h * (MAX_W/w); w = MAX_W; }
+        if (h > MAX_H) { w = w * (MAX_H/h); h = MAX_H; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const jpegData = canvas.toDataURL("image/jpeg", 0.92);
+        res({data: jpegData, w:w, h:h, type: "JPEG"});
+      };
+      img.src = dataurl;
+    });
+  }
+
   async function saveAsPDF() {
+    await waitForImages();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({unit:"pt", format:"a4"});
     const left = 54, right = 540, maxWidth = right-left;
     let yy = 54;
-    doc.setFont("Times", "bold");
-    doc.setFontSize(20);
-    // Title centered
+    doc.setFont("Times", "bold"); doc.setFontSize(20);
     doc.text((title.value || "Bug Title"), 297.5, yy, {align:"center"});
     yy += 38;
-    // Each section
-    drawSection("Summary/Description", desc.value, 14, 12);
-    drawSection("Link", link.value, 14, 12);
-    // Steps bullets
-    doc.setFontSize(14); doc.setFont("Times", "bold"); doc.text("Steps to Reproduce/Exploit", left, yy);
-    yy += 18;
+    drawSection("Summary:", desc.value, 14, 12, true);
+    drawSection("Link:", link.value, 14, 12, true);
+    doc.setFontSize(14); doc.setFont("Times", "bold");
+    doc.text("Steps to Reproduce:", left, yy); yy += 18;
     doc.setFont("Times", "normal"); doc.setFontSize(12);
-    let stepNum = 1;
     for(let step of stepsData) {
       if(step.text) {
         doc.circle(left-7, yy+3, 2, "F");
@@ -216,61 +241,74 @@
         doc.text(lines, left, yy+8);
         yy += 18 * lines.length;
         if(step.img) {
-          // scale image
           let img = await loadImagePDF(step.img);
           let imgW = Math.min(300, img.w), imgH = imgW * (img.h/img.w);
           if(yy+imgH+8>800) { doc.addPage(); yy = 54; }
-          doc.addImage(img.data, img.type, left, yy, imgW, imgH);
+          doc.addImage(img.data, "JPEG", left, yy, imgW, imgH);
           yy += imgH + 8;
         }
         yy += 8;
       }
     }
-    // Impact
-    drawSection("Impact", impact.value, 14, 12);
-    // Resources (if any)
-    if(resources.value) drawSection("Resources", resources.value, 14, 12);
-    doc.save((title.value.replace(/\s+/g,'_')||'bug')+"_Bug_Report.pdf");
+    drawSection("Impact:", impact.value, 14, 12, true);
+    if(references.value) drawSection("References:", references.value, 14, 12, true);
+    if(remediation.value) drawSection("Remediation:", remediation.value, 14, 12, true);
+    let fname = (pdfFileName.value || title.value.replace(/\s+/g,'_') || 'bug_report').replace(/[^\w\d_-]+/g, "_");
+    doc.save(fname + ".pdf");
 
-    function drawSection(hd, val, hdsize, valsize) {
+    function drawSection(hd, val, hdsize, valsize, doLink) {
       if(yy > 770) { doc.addPage(); yy = 54; }
-      doc.setFontSize(hdsize);
-      doc.setFont("Times", "bold");
+      doc.setFontSize(hdsize); doc.setFont("Times", "bold");
       doc.text(hd, left, yy); yy += 18;
-      doc.setFontSize(valsize);
-      doc.setFont("Times", "normal");
+      doc.setFontSize(valsize); doc.setFont("Times", "normal");
       if(val) {
-        let lines = doc.splitTextToSize(val, maxWidth);
-        doc.text(lines, left, yy);
-        yy += 18 * lines.length;
+        let plain = val;
+        let match;
+        let links = [];
+        const urlRegex = /https:\/\/[^\s]+/g;
+        let lastIdx = 0;
+        while((match = urlRegex.exec(plain))) {
+          links.push({idx:match.index, url:match[0]});
+        }
+        if (links.length === 0 || !doLink) {
+          let lines = doc.splitTextToSize(val, maxWidth);
+          doc.text(lines, left, yy); yy += 18 * lines.length;
+        } else {
+          let yStart = yy;
+          let content = "";
+          let ci = 0;
+          for(let i=0; i<val.length; ) {
+            if (links[ci] && i===links[ci].idx) {
+              if (content) {
+                let lines = doc.splitTextToSize(content, maxWidth);
+                doc.text(lines, left, yy);
+                yy += 18 * lines.length;
+                content = "";
+              }
+              let url = links[ci].url;
+              doc.setTextColor(39, 78, 199);
+              doc.textWithLink(url, left, yy, {url});
+              doc.setTextColor(0,0,0);
+              yy += 18;
+              ci++;
+              i += url.length;
+            } else {
+              content += val[i++];
+            }
+          }
+          if (content) {
+            let lines = doc.splitTextToSize(content, maxWidth);
+            doc.text(lines, left, yy);
+            yy += 18 * lines.length;
+          }
+        }
       }
       yy += 8;
     }
-    function loadImagePDF(dataurl) {
-      return new Promise(res=>{
-        let img = new window.Image();
-        img.onload=()=>res({data:dataurl, w:img.width, h:img.height, type: dataurl.indexOf("png")>-1?"PNG":"JPEG"});
-        img.src = dataurl;
-      });
-    }
   }
 
-  // DOCX export without images (basic, for preview only)
-  function saveAsDocument() {
-    let text = '';
-    text += (title.value || "Bug Title") + "\n\n";
-    text += "Summary/Description\n" + (desc.value||'') + "\n\n";
-    text += "Link\n" + (link.value||'') + "\n\n";
-    text += "Steps to Reproduce/Exploit\n";
-    stepsData.forEach(s=> { if(s.text) text += "• " + s.text + "\n"; });
-    text += "\nImpact\n" + (impact.value||'') + "\n\n";
-    if(resources.value) text += "Resources\n"+resources.value+"\n";
-    // Save as a .doc file
-    let blob = new Blob([text], {type:'application/msword'});
-    let a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (title.value.replace(/\s+/g,'_')||'bug') + "_Bug_Report.doc";
-    a.click();
+  function onSave() {
+    saveAsPDF();
   }
 </script>
 </body>
